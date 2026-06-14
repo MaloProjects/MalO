@@ -11,16 +11,15 @@
             padding: 0;
             width: 100%;
             height: 100%;
-            box-sizing: border-box;
+            overflow-x: hidden;
         }
 
         @media screen and (orientation: landscape) {
-            html, body {
+            body {
                 transform: rotate(-90deg);
                 transform-origin: left top;
                 width: 100vh;
                 height: 100vw;
-                overflow-x: hidden;
                 position: absolute;
                 top: 100%;
                 left: 0;
@@ -33,25 +32,21 @@
     <div>test</div>
 
     <script>
-        async function lockOrientation() {
-            try {
-
-                if (document.documentElement.requestFullscreen) {
-
-
-                }
-                
-                if (screen.orientation && screen.orientation.lock) {
-                    await screen.orientation.lock('portrait');
-                    console.log("Orientation locked to portrait successfully.");
-                }
-            } catch (error) {
-                console.warn("Hardware orientation lock rejected or unsupported on this browser:", error);
+        function lockPortrait() {
+            if (screen.orientation && screen.orientation.lock) {
+                screen.orientation.lock('portrait')
+                    .then(() => {
+                        console.log("Hardware orientation locked to portrait.");
+                    })
+                    .catch((error) => {
+                        console.log("Hardware lock blocked by browser. Using CSS fallback instead.");
+                    });
             }
         }
 
-        
-        window.addEventListener("DOMContentLoaded", lockOrientation);
+        window.addEventListener("DOMContentLoaded", lockPortrait);
+
+        window.addEventListener("click", lockPortrait);
     </script>
 </body>
 </html>
