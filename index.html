@@ -2,11 +2,56 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MalO ver 1.0.0</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            box-sizing: border-box;
+        }
+
+        @media screen and (orientation: landscape) {
+            html, body {
+                transform: rotate(-90deg);
+                transform-origin: left top;
+                width: 100vh;
+                height: 100vw;
+                overflow-x: hidden;
+                position: absolute;
+                top: 100%;
+                left: 0;
+            }
+        }
+    </style>
 </head>
 <body>
-    test
+
+    <div>test</div>
+
+    <script>
+        async function lockOrientation() {
+            try {
+
+                if (document.documentElement.requestFullscreen) {
+
+
+                }
+                
+                if (screen.orientation && screen.orientation.lock) {
+                    await screen.orientation.lock('portrait');
+                    console.log("Orientation locked to portrait successfully.");
+                }
+            } catch (error) {
+                console.warn("Hardware orientation lock rejected or unsupported on this browser:", error);
+            }
+        }
+
+        
+        window.addEventListener("DOMContentLoaded", lockOrientation);
+    </script>
 </body>
 </html>
