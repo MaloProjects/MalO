@@ -1,0 +1,1054 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>AURORA Systems</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet" />
+        <link rel="icon" type="image/png" href="AURORA.jpg">
+    <style>
+        :root {
+            --bg-base: #020617;
+            --panel-bg: rgba(15, 23, 42, 0.65);
+            --text-main: #f8fafc;
+            --text-dim: #94a3b8;
+            --accent: #10b981; 
+            --accent-glow: rgba(16, 185, 129, 0.2);
+            --border: rgba(255, 255, 255, 0.1);
+            --sidebar-width: 70px;
+            --font-family: 'Inter', sans-serif;
+            --bg-image: none;
+        }
+
+        * { box-sizing: border-box; transition: background-color 0.3s, border-color 0.3s, color 0.3s; }
+
+        body {
+            font-family: var(--font-family);
+            background-color: var(--bg-base);
+            background-image: var(--bg-image);
+            background-size: cover;
+            background-position: center;
+            color: var(--text-main);
+            margin: 0;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Matrix Canvas */
+        #matrixCanvas {
+            position: absolute; top: 0; left: 0; width: 100vw; height: 100vh;
+            z-index: -1; opacity: 0; transition: opacity 1s ease; pointer-events: none;
+        }
+        #matrixCanvas.active { opacity: 0.3; }
+
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--accent); }
+
+        /* --- ANIMATIONS --- */
+        @keyframes popIn {
+            0% { opacity: 0; transform: scale(0.95) translateY(10px); }
+            100% { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        @keyframes slideInMsg {
+            from { opacity: 0; transform: translateX(-10px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 var(--accent-glow); }
+            70% { box-shadow: 0 0 10px 5px transparent; }
+            100% { box-shadow: 0 0 0 0 transparent; }
+        }
+
+        /* --- SIDEBAR NAV --- */
+        nav {
+            width: var(--sidebar-width);
+            background: rgba(2, 6, 23, 0.8);
+            backdrop-filter: blur(10px);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px 0;
+            gap: 20px;
+            z-index: 100;
+            overflow-y: auto;
+        }
+
+        .nav-icon { cursor: pointer; color: var(--text-dim); display: flex; flex-direction: column; align-items: center; gap: 5px; }
+        .nav-icon span.material-symbols-outlined { font-size: 24px; transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), color 0.2s; }
+        .nav-icon:hover { color: var(--accent); }
+        .nav-icon:hover span { transform: translateY(-4px) scale(1.1); text-shadow: 0 0 12px var(--accent-glow); }
+        .nav-icon.active-icon { color: var(--accent); }
+
+        /* --- MAIN CONTENT AREA --- */
+        main { flex: 1; display: flex; flex-direction: column; padding: 25px; overflow-y: auto; backdrop-filter: blur(0px); z-index: 10; }
+
+        header {
+            display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;
+            background: var(--panel-bg); padding: 15px 25px; border-radius: 12px; border: 1px solid var(--border); backdrop-filter: blur(10px);
+            animation: popIn 0.5s ease-out;
+        }
+
+        .logo-group h1 { margin: 0; font-size: 1.4rem; color: var(--text-main); letter-spacing: 3px; font-weight: 600; }
+        .logo-group h1 span { color: var(--accent); text-shadow: 0 0 10px var(--accent-glow); }
+        .stats-bar { display: flex; gap: 25px; font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; color: var(--text-dim); margin-top: 5px; }
+
+        /* --- GRID LAYOUT --- */
+        .dashboard { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; flex: 1; align-content: start; }
+
+        .panel {
+            background: var(--panel-bg); backdrop-filter: blur(15px); border: 1px solid var(--border); border-radius: 12px;
+            padding: 20px; display: flex; flex-direction: column; box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2); min-height: 300px; max-height: 300px;
+            animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+            transform-origin: center;
+        }
+        .panel:hover { border-color: rgba(255,255,255,0.2); box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4); }
+
+        .panel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid var(--border); padding-bottom: 10px; }
+        .panel-title { font-size: 0.85rem; font-weight: 600; color: var(--text-main); text-transform: uppercase; letter-spacing: 1px; display: flex; align-items: center; gap: 8px; }
+        .panel-title span.material-symbols-outlined { color: var(--accent); font-size: 18px; }
+
+        /* --- WIDGETS & INPUTS --- */
+        input, textarea, select {
+            background: rgba(0, 0, 0, 0.3); border: 1px solid var(--border); color: var(--text-main);
+            padding: 10px 15px; border-radius: 8px; width: 100%; font-family: inherit; outline: none;
+            transition: all 0.2s ease;
+        }
+        input:focus, textarea:focus, select:focus { border-color: var(--accent); box-shadow: 0 0 8px var(--accent-glow); }
+
+        button { background: var(--accent); color: #000; border: none; padding: 10px 18px; border-radius: 8px; cursor: pointer; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 5px; transition: all 0.2s; }
+        button:hover { filter: brightness(1.2); transform: translateY(-2px); box-shadow: 0 4px 12px var(--accent-glow); }
+        button:active { transform: translateY(0); }
+        button.secondary { background: transparent; color: var(--text-dim); border: 1px solid var(--border); }
+        button.secondary:hover { background: rgba(255,255,255,0.05); color: var(--text-main); box-shadow: none; }
+        button.icon-btn { padding: 8px; }
+
+        /* Custom Panel Styles */
+        #chatBox { flex: 1; overflow-y: auto; margin-bottom: 15px; font-size: 0.9rem; font-family: 'JetBrains Mono', monospace; display: flex; flex-direction: column; gap: 8px; }
+        .msg { padding: 10px 14px; border-radius: 8px; max-width: 90%; word-wrap: break-word; animation: slideInMsg 0.3s ease-out forwards; }
+        .msg-aurora { border-left: 3px solid var(--accent); background: rgba(16, 185, 129, 0.05); align-self: flex-start; }
+        .msg-user { background: rgba(255, 255, 255, 0.05); align-self: flex-end; border-right: 3px solid var(--text-dim); }
+
+        .list-item { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; background: rgba(0,0,0,0.2); padding: 10px 12px; border-radius: 8px; border: 1px solid transparent; transition: transform 0.2s; }
+        .list-item:hover { border-color: var(--border); transform: translateX(4px); }
+        .task-done { text-decoration: line-through; color: var(--text-dim); }
+        
+        .timer-display { font-size: 3.5rem; text-align: center; font-family: 'JetBrains Mono', monospace; margin: auto 0; font-weight: 700; color: var(--text-main); text-shadow: 0 0 15px var(--accent-glow); }
+        
+        /* System Monitor Bars */
+        .sys-bar-bg { width: 100%; background: rgba(0,0,0,0.4); border-radius: 4px; height: 12px; margin-top: 5px; overflow: hidden; }
+        .sys-bar-fill { height: 100%; background: var(--accent); border-radius: 4px; width: 0%; transition: width 0.5s ease-out; box-shadow: 0 0 10px var(--accent-glow); }
+        .sys-label { display: flex; justify-content: space-between; font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; margin-top: 10px; color: var(--text-dim); }
+
+        .calc-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; flex: 1; }
+        .calc-grid button { padding: 5px; font-size: 1rem; font-family: 'JetBrains Mono', monospace; }
+        
+        .color-box { flex: 1; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; text-shadow: 0 0 4px #000; cursor: pointer; min-height: 40px; transition: transform 0.2s;}
+        .color-box:hover { transform: scale(1.02); }
+
+        .hidden { display: none !important; }
+
+        @media (max-width: 768px) {
+            nav { position: fixed; bottom: 0; width: 100%; height: 70px; flex-direction: row; justify-content: space-around; padding: 0; border-right: none; border-top: 1px solid var(--border); overflow-x: auto; }
+            main { padding-bottom: 90px; }
+            .dashboard { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+    <canvas id="matrixCanvas"></canvas>
+
+    <nav id="sidebarNav">
+        <div class="nav-icon" title="Terminal" onclick="toggleView('terminal')"><span class="material-symbols-outlined">terminal</span></div>
+        <div class="nav-icon" title="System Monitor" onclick="toggleView('sysmon-panel')"><span class="material-symbols-outlined">memory</span></div>
+        <div class="nav-icon" title="Objectives" onclick="toggleView('tasks-panel')"><span class="material-symbols-outlined">task_alt</span></div>
+        <div class="nav-icon" title="Links" onclick="toggleView('links-panel')"><span class="material-symbols-outlined">bookmark</span></div>
+        <div class="nav-icon" title="Scratchpad" onclick="toggleView('notes-panel')"><span class="material-symbols-outlined">edit_note</span></div>
+        <div class="nav-icon" title="Focus Timer" onclick="toggleView('timer-panel')"><span class="material-symbols-outlined">hourglass_empty</span></div>
+        <div class="nav-icon" title="Stopwatch" onclick="toggleView('stopwatch-panel')"><span class="material-symbols-outlined">timer_play</span></div>
+        
+        <div class="nav-icon" title="Calculator" onclick="toggleView('calc-panel')"><span class="material-symbols-outlined">calculate</span></div>
+        <div class="nav-icon" title="Unit Converter" onclick="toggleView('convert-panel')"><span class="material-symbols-outlined">sync_alt</span></div>
+        <div class="nav-icon" title="Expense Tracker" onclick="toggleView('expense-panel')"><span class="material-symbols-outlined">account_balance_wallet</span></div>
+        <div class="nav-icon" title="Password Gen" onclick="toggleView('pass-panel')"><span class="material-symbols-outlined">password</span></div>
+        
+        <div class="nav-icon" title="Text Analyzer" onclick="toggleView('text-panel')"><span class="material-symbols-outlined">analytics</span></div>
+        <div class="nav-icon" title="RNG Module" onclick="toggleView('rng-panel')"><span class="material-symbols-outlined">casino</span></div>
+        <div class="nav-icon" title="Color Palette" onclick="toggleView('color-panel')"><span class="material-symbols-outlined">palette</span></div>
+        
+        <div class="nav-icon" title="Morse Code" onclick="toggleView('morse-panel')"><span class="material-symbols-outlined">sensors</span></div>
+        <div class="nav-icon" title="Device Scanner" onclick="toggleView('device-panel')"><span class="material-symbols-outlined">radar</span></div>
+        
+        <div class="nav-icon" title="QR Code Gen" onclick="toggleView('qr-panel')"><span class="material-symbols-outlined">qr_code_2</span></div>
+        <div class="nav-icon" title="Base64 Codec" onclick="toggleView('base64-panel')"><span class="material-symbols-outlined">code</span></div>
+        <div class="nav-icon" title="Binary Translator" onclick="toggleView('binary-panel')"><span class="material-symbols-outlined">data_object</span></div>
+        <div class="nav-icon" title="Keycode Inspector" onclick="toggleView('keycode-panel')"><span class="material-symbols-outlined">keyboard</span></div>
+        <div class="nav-icon" title="Lorem Ipsum" onclick="toggleView('lorem-panel')"><span class="material-symbols-outlined">subject</span></div>
+        <div class="nav-icon" title="Color Converter" onclick="toggleView('rgbhex-panel')"><span class="material-symbols-outlined">format_color_fill</span></div>
+        <div class="nav-icon" title="Word Scrambler" onclick="toggleView('scramble-panel')"><span class="material-symbols-outlined">shuffle</span></div>
+
+        <div class="nav-icon" title="Settings" onclick="toggleView('settings-panel')"><span class="material-symbols-outlined">settings</span></div>
+    </nav>
+
+    <main>
+        <header>
+            <div class="logo-group">
+                <h1>AU<span>RO</span>RA</h1>
+                <div class="stats-bar">
+                    <span>Autonomous User-Responsive Operations & Resources Assistant</span>
+                    <span>SYS: <span style="color:var(--accent); text-shadow: 0 0 5px var(--accent-glow);">ONLINE</span></span>
+                    <span>OP: <span id="opName" style="color:#fff;">COMMANDER</span></span>
+                </div>
+            </div>
+            <button onclick="clearAllData()" class="secondary icon-btn" title="Purge Cache">
+                <span class="material-symbols-outlined">delete_sweep</span>
+            </button>
+        </header>
+
+        <div class="dashboard" id="dash">
+            
+            <div class="panel hidden" id="terminal">
+                <div class="panel-header"><span class="panel-title"><span class="material-symbols-outlined">terminal</span> Command</span><button class="secondary icon-btn" style="padding:4px;" onclick="toggleView('terminal')"><span class="material-symbols-outlined">close</span></button></div>
+                <div id="chatBox"></div>
+                <div style="display:flex; gap:10px;">
+                    <input type="text" id="chatInput" placeholder="Enter command or help..." onkeypress="if(event.key === 'Enter') handleChat()">
+                    <button class="icon-btn" onclick="handleChat()"><span class="material-symbols-outlined">send</span></button>
+                </div>
+            </div>
+
+            <div class="panel hidden" id="sysmon-panel">
+                <div class="panel-header"><span class="panel-title"><span class="material-symbols-outlined">memory</span> Telemetry</span><button class="secondary icon-btn" style="padding:4px;" onclick="toggleView('sysmon-panel')"><span class="material-symbols-outlined">close</span></button></div>
+                <div style="flex:1; display:flex; flex-direction:column; justify-content:center; gap: 5px;">
+                    <div class="sys-label"><span>CPU Usage</span><span id="cpuVal">0%</span></div>
+                    <div class="sys-bar-bg"><div class="sys-bar-fill" id="cpuBar"></div></div>
+                    
+                    <div class="sys-label"><span>RAM Allocation</span><span id="ramVal">0GB / 16GB</span></div>
+                    <div class="sys-bar-bg"><div class="sys-bar-fill" id="ramBar"></div></div>
+                    
+                    <div class="sys-label"><span>Network I/O</span><span id="netVal">0 Mbps</span></div>
+                    <div class="sys-bar-bg"><div class="sys-bar-fill" id="netBar"></div></div>
+                </div>
+            </div>
+
+            <div class="panel hidden" id="tasks-panel">
+                <div class="panel-header"><span class="panel-title"><span class="material-symbols-outlined">task_alt</span> Objectives</span><button class="secondary icon-btn" style="padding:4px;" onclick="toggleView('tasks-panel')"><span class="material-symbols-outlined">close</span></button></div>
+                <div id="taskList" style="flex:1; overflow-y:auto; margin-bottom: 10px;"></div>
+                <div style="display:flex; gap:10px;">
+                    <input type="text" id="taskInput" placeholder="New objective..." onkeypress="if(event.key === 'Enter') addTask()">
+                    <button class="icon-btn" onclick="addTask()"><span class="material-symbols-outlined">add</span></button>
+                </div>
+            </div>
+
+            <div class="panel hidden" id="links-panel">
+                <div class="panel-header"><span class="panel-title"><span class="material-symbols-outlined">bookmark</span> Quick Links</span><button class="secondary icon-btn" style="padding:4px;" onclick="toggleView('links-panel')"><span class="material-symbols-outlined">close</span></button></div>
+                <div class="link-grid" id="linkList" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; overflow-y: auto; flex: 1; margin-bottom: 10px;"></div>
+                <div style="display:flex; gap:10px;">
+                    <input type="text" id="linkName" placeholder="Name">
+                    <input type="text" id="linkUrl" placeholder="URL">
+                    <button class="icon-btn" onclick="addLink()"><span class="material-symbols-outlined">add</span></button>
+                </div>
+            </div>
+
+            <div class="panel hidden" id="notes-panel">
+                <div class="panel-header">
+                    <span class="panel-title"><span class="material-symbols-outlined">edit_note</span> Scratchpad</span>
+                    <div style="display:flex; gap:10px; align-items:center;">
+                        <span class="material-symbols-outlined" style="font-size:16px; color:var(--text-dim); cursor:pointer;" onclick="saveNotes()">save</span>
+                        <button class="secondary icon-btn" style="padding:4px;" onclick="toggleView('notes-panel')"><span class="material-symbols-outlined">close</span></button>
+                    </div>
+                </div>
+                <textarea id="scratchpad" style="flex:1; resize:none; font-family:'JetBrains Mono', monospace;" placeholder="Persistent notes..." oninput="saveNotes()"></textarea>
+            </div>
+
+            <div class="panel hidden" id="timer-panel">
+                <div class="panel-header"><span class="panel-title"><span class="material-symbols-outlined">hourglass_empty</span> Focus Module</span><button class="secondary icon-btn" style="padding:4px;" onclick="toggleView('timer-panel')"><span class="material-symbols-outlined">close</span></button></div>
+                <div class="timer-display" id="timerDisplay">25:00</div>
+                <div style="display: flex; gap: 10px; justify-content: center; align-items: center; margin-bottom: 10px;">
+                    <label style="font-size: 0.8rem; color: var(--text-dim);">Minutes:</label>
+                    <input type="number" id="focusTimeInput" value="25" min="1" max="120" style="width: 70px; text-align: center;" onchange="updateTimerDisplayFromInput()">
+                </div>
+                <div style="display: flex; gap: 10px; justify-content: center;">
+                    <button onclick="startTimer()"><span class="material-symbols-outlined">play_arrow</span> START</button>
+                    <button class="secondary" onclick="resetTimer()"><span class="material-symbols-outlined">refresh</span></button>
+                </div>
+            </div>
+
+            <div class="panel hidden" id="calc-panel">
+                <div class="panel-header"><span class="panel-title"><span class="material-symbols-outlined">calculate</span> Calculator</span><button class="secondary icon-btn" style="padding:4px;" onclick="toggleView('calc-panel')"><span class="material-symbols-outlined">close</span></button></div>
+                <input type="text" id="calcDisplay" disabled style="font-size:1.5rem; text-align:right; margin-bottom:10px; font-family:'JetBrains Mono', monospace;" value="0">
+                <div class="calc-grid">
+                    <button class="secondary" onclick="calcAppend('7')">7</button><button class="secondary" onclick="calcAppend('8')">8</button><button class="secondary" onclick="calcAppend('9')">9</button><button onclick="calcAppend('/')">/</button>
+                    <button class="secondary" onclick="calcAppend('4')">4</button><button class="secondary" onclick="calcAppend('5')">5</button><button class="secondary" onclick="calcAppend('6')">6</button><button onclick="calcAppend('*')">*</button>
+                    <button class="secondary" onclick="calcAppend('1')">1</button><button class="secondary" onclick="calcAppend('2')">2</button><button class="secondary" onclick="calcAppend('3')">3</button><button onclick="calcAppend('-')">-</button>
+                    <button class="secondary" onclick="calcClear()">C</button><button class="secondary" onclick="calcAppend('0')">0</button><button onclick="calcEval()">=</button><button onclick="calcAppend('+')">+</button>
+                </div>
+            </div>
+
+            <div class="panel hidden" id="pass-panel">
+                <div class="panel-header"><span class="panel-title"><span class="material-symbols-outlined">password</span> Key Gen</span><button class="secondary icon-btn" style="padding:4px;" onclick="toggleView('pass-panel')"><span class="material-symbols-outlined">close</span></button></div>
+                <div style="flex:1; display:flex; flex-direction:column; gap:15px; justify-content:center;">
+                    <input type="text" id="passOutput" readonly style="font-family:'JetBrains Mono', monospace; text-align:center; font-size:1.2rem;">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <label>Length: <span id="passLenDisp">16</span></label>
+                        <input type="range" id="passLen" min="8" max="32" value="16" oninput="document.getElementById('passLenDisp').innerText = this.value">
+                    </div>
+                    <button onclick="generatePassword()"><span class="material-symbols-outlined">vpn_key</span> Generate</button>
+                </div>
+            </div>
+
+            <div class="panel hidden" id="text-panel">
+                <div class="panel-header"><span class="panel-title"><span class="material-symbols-outlined">analytics</span> Text Analyzer</span><button class="secondary icon-btn" style="padding:4px;" onclick="toggleView('text-panel')"><span class="material-symbols-outlined">close</span></button></div>
+                <textarea id="textAnalyzer" style="flex:1; resize:none; margin-bottom:10px;" placeholder="Paste text here..." oninput="analyzeText()"></textarea>
+                <div style="display:flex; justify-content:space-between; font-size:0.8rem; color:var(--text-dim); font-family:'JetBrains Mono', monospace;">
+                    <span>Words: <span id="wordCount" style="color:var(--text-main)">0</span></span>
+                    <span>Chars: <span id="charCount" style="color:var(--text-main)">0</span></span>
+                </div>
+            </div>
+
+            <div class="panel hidden" id="expense-panel">
+                <div class="panel-header"><span class="panel-title"><span class="material-symbols-outlined">account_balance_wallet</span> Ledger</span><button class="secondary icon-btn" style="padding:4px;" onclick="toggleView('expense-panel')"><span class="material-symbols-outlined">close</span></button></div>
+                <div id="expenseList" style="flex:1; overflow-y:auto; margin-bottom: 10px;"></div>
+                <div style="display:flex; justify-content:space-between; margin-bottom:10px; font-weight:bold;"><span>Total:</span><span id="expenseTotal" style="color:var(--accent)">$0.00</span></div>
+                <div style="display:flex; gap:10px;">
+                    <input type="text" id="expDesc" placeholder="Item" style="flex:2;">
+                    <input type="number" id="expAmt" placeholder="$0" style="flex:1;">
+                    <button class="icon-btn" onclick="addExpense()"><span class="material-symbols-outlined">add</span></button>
+                </div>
+            </div>
+
+            <div class="panel hidden" id="stopwatch-panel">
+                <div class="panel-header"><span class="panel-title"><span class="material-symbols-outlined">timer_play</span> Stopwatch</span><button class="secondary icon-btn" style="padding:4px;" onclick="toggleView('stopwatch-panel')"><span class="material-symbols-outlined">close</span></button></div>
+                <div class="timer-display" id="swDisplay">00:00.0</div>
+                <div style="display: flex; gap: 10px; justify-content: center;">
+                    <button onclick="startSW()"><span class="material-symbols-outlined">play_arrow</span></button>
+                    <button class="secondary" onclick="stopSW()"><span class="material-symbols-outlined">pause</span></button>
+                    <button class="secondary" onclick="resetSW()"><span class="material-symbols-outlined">refresh</span></button>
+                </div>
+            </div>
+
+            <div class="panel hidden" id="convert-panel">
+                <div class="panel-header"><span class="panel-title"><span class="material-symbols-outlined">sync_alt</span> Converter</span><button class="secondary icon-btn" style="padding:4px;" onclick="toggleView('convert-panel')"><span class="material-symbols-outlined">close</span></button></div>
+                <div style="flex:1; display:flex; flex-direction:column; gap:10px; justify-content:center;">
+                    <select id="convType" onchange="runConvert()">
+                        <option value="km_mi">Kilometers ↔ Miles</option>
+                        <option value="kg_lb">Kilograms ↔ Pounds</option>
+                        <option value="c_f">Celsius ↔ Fahrenheit</option>
+                    </select>
+                    <div style="display:flex; gap:10px; align-items:center;">
+                        <input type="number" id="convInput" placeholder="Value" oninput="runConvert()">
+                        <span class="material-symbols-outlined">arrow_forward</span>
+                        <input type="text" id="convOutput" readonly placeholder="Result">
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel hidden" id="rng-panel">
+                <div class="panel-header"><span class="panel-title"><span class="material-symbols-outlined">casino</span> RNG Module</span><button class="secondary icon-btn" style="padding:4px;" onclick="toggleView('rng-panel')"><span class="material-symbols-outlined">close</span></button></div>
+                <div style="flex:1; display:flex; flex-direction:column; gap:10px; justify-content:center; align-items:center;">
+                    <div id="rngResult" style="font-size:3.5rem; font-family:'JetBrains Mono', monospace; color:var(--accent); font-weight:700;">0</div>
+                    <div style="display:flex; gap:10px; width:100%; justify-content:center; align-items:center;">
+                        <input type="number" id="rngMin" value="1" style="width:80px; text-align:center;">
+                        <span style="color:var(--text-dim); font-size:0.9rem;">to</span>
+                        <input type="number" id="rngMax" value="100" style="width:80px; text-align:center;">
+                    </div>
+                    <button onclick="rollRNG()" style="width:100%; margin-top:10px;">Roll Dice</button>
+                </div>
+            </div>
+
+            <div class="panel hidden" id="color-panel">
+                <div class="panel-header"><span class="panel-title"><span class="material-symbols-outlined">palette</span> Palette Gen</span><button class="secondary icon-btn" style="padding:4px;" onclick="toggleView('color-panel')"><span class="material-symbols-outlined">close</span></button></div>
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 10px;">
+                    <label style="font-size:0.8rem; color:var(--text-dim);">Colors: <span id="paletteCountDisp">4</span></label>
+                    <input type="range" id="paletteCount" min="2" max="8" value="4" oninput="generatePalette()" style="width: 150px;">
+                </div>
+                <div id="colorContainer" style="flex:1; display:flex; flex-direction:column; gap:5px; margin-bottom:15px; overflow-y:auto;"></div>
+                <button onclick="generatePalette()" style="width:100%;">Generate</button>
+            </div>
+
+            <div class="panel hidden" id="morse-panel">
+                <div class="panel-header"><span class="panel-title"><span class="material-symbols-outlined">sensors</span> Morse Code</span><button class="secondary icon-btn" style="padding:4px;" onclick="toggleView('morse-panel')"><span class="material-symbols-outlined">close</span></button></div>
+                <textarea id="morseInput" style="flex:1; resize:none; margin-bottom:10px; font-family:'JetBrains Mono', monospace;" placeholder="Text or Morse (use . and -)"></textarea>
+                <div style="display:flex; gap:10px;">
+                    <button style="flex:1;" onclick="runMorse('enc')">To Morse</button>
+                    <button class="secondary" style="flex:1;" onclick="runMorse('dec')">To Text</button>
+                </div>
+            </div>
+
+            <div class="panel hidden" id="device-panel">
+                <div class="panel-header"><span class="panel-title"><span class="material-symbols-outlined">radar</span> Device Scanner</span><button class="secondary icon-btn" style="padding:4px;" onclick="toggleView('device-panel')"><span class="material-symbols-outlined">close</span></button></div>
+                <div id="deviceOutput" style="flex:1; overflow-y:auto; font-family:'JetBrains Mono', monospace; font-size:0.85rem; color:var(--accent); display:flex; flex-direction:column; gap:8px;">
+                    <span style="color:var(--text-dim);">Awaiting scan initialization...</span>
+                    <button onclick="scanDevice()" style="margin-top:auto;">Run Scan</button>
+                </div>
+            </div>
+
+            <div class="panel hidden" id="qr-panel">
+                <div class="panel-header"><span class="panel-title"><span class="material-symbols-outlined">qr_code_2</span> QR Code</span><button class="secondary icon-btn" style="padding:4px;" onclick="toggleView('qr-panel')"><span class="material-symbols-outlined">close</span></button></div>
+                <div style="flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px;">
+                    <div id="qrBox" style="width:150px; height:150px; background:rgba(0,0,0,0.3); border-radius:8px; display:flex; align-items:center; justify-content:center;"><span style="color:var(--text-dim);">Waiting...</span></div>
+                    <div style="display:flex; gap:10px; width:100%;">
+                        <input type="text" id="qrInput" placeholder="URL or text...">
+                        <button class="icon-btn" onclick="genQR()"><span class="material-symbols-outlined">qr_code</span></button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel hidden" id="base64-panel">
+                <div class="panel-header"><span class="panel-title"><span class="material-symbols-outlined">code</span> Base64 Codec</span><button class="secondary icon-btn" style="padding:4px;" onclick="toggleView('base64-panel')"><span class="material-symbols-outlined">close</span></button></div>
+                <textarea id="b64Input" style="flex:1; resize:none; margin-bottom:10px; font-family:'JetBrains Mono', monospace;" placeholder="Text or Base64..."></textarea>
+                <div style="display:flex; gap:10px;">
+                    <button style="flex:1;" onclick="runB64('enc')">Encode</button>
+                    <button class="secondary" style="flex:1;" onclick="runB64('dec')">Decode</button>
+                </div>
+            </div>
+
+            <div class="panel hidden" id="binary-panel">
+                <div class="panel-header"><span class="panel-title"><span class="material-symbols-outlined">data_object</span> Binary Translator</span><button class="secondary icon-btn" style="padding:4px;" onclick="toggleView('binary-panel')"><span class="material-symbols-outlined">close</span></button></div>
+                <textarea id="binInput" style="flex:1; resize:none; margin-bottom:10px; font-family:'JetBrains Mono', monospace;" placeholder="Text or Binary..."></textarea>
+                <div style="display:flex; gap:10px;">
+                    <button style="flex:1;" onclick="runBin('enc')">To Binary</button>
+                    <button class="secondary" style="flex:1;" onclick="runBin('dec')">To Text</button>
+                </div>
+            </div>
+
+            <div class="panel hidden" id="keycode-panel">
+                <div class="panel-header"><span class="panel-title"><span class="material-symbols-outlined">keyboard</span> Key Inspector</span><button class="secondary icon-btn" style="padding:4px;" onclick="toggleView('keycode-panel')"><span class="material-symbols-outlined">close</span></button></div>
+                <div style="flex:1; display:flex; flex-direction:column; justify-content:center; align-items:center; background:rgba(0,0,0,0.2); border-radius:8px; margin-bottom:10px;">
+                    <span id="kcMain" style="font-size:4rem; color:var(--accent); font-family:'JetBrains Mono', monospace; font-weight:700;">--</span>
+                    <span id="kcSub" style="color:var(--text-dim); font-size:0.9rem;">Press any key</span>
+                </div>
+            </div>
+
+            <div class="panel hidden" id="lorem-panel">
+                <div class="panel-header"><span class="panel-title"><span class="material-symbols-outlined">subject</span> Lorem Ipsum</span><button class="secondary icon-btn" style="padding:4px;" onclick="toggleView('lorem-panel')"><span class="material-symbols-outlined">close</span></button></div>
+                <div style="display:flex; gap:10px; margin-bottom:10px;">
+                    <input type="number" id="loremCount" value="1" min="1" max="5" style="width:60px; text-align:center;">
+                    <button style="flex:1;" onclick="genLorem()">Generate Paras</button>
+                </div>
+                <textarea id="loremOut" style="flex:1; resize:none; font-family:var(--font-family);" readonly></textarea>
+            </div>
+
+            <div class="panel hidden" id="rgbhex-panel">
+                <div class="panel-header"><span class="panel-title"><span class="material-symbols-outlined">format_color_fill</span> Color Converter</span><button class="secondary icon-btn" style="padding:4px;" onclick="toggleView('rgbhex-panel')"><span class="material-symbols-outlined">close</span></button></div>
+                <div style="flex:1; display:flex; flex-direction:column; gap:15px; justify-content:center;">
+                    <div style="display:flex; gap:10px; align-items:center;">
+                        <input type="text" id="hexIn" placeholder="#FFFFFF" oninput="hexToRgb()">
+                        <span class="material-symbols-outlined">arrow_forward</span>
+                        <input type="text" id="hexOut" placeholder="RGB" readonly>
+                    </div>
+                    <div style="display:flex; gap:10px; align-items:center;">
+                        <input type="text" id="rgbIn" placeholder="255, 255, 255" oninput="rgbToHex()">
+                        <span class="material-symbols-outlined">arrow_forward</span>
+                        <input type="text" id="rgbOut" placeholder="HEX" readonly>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel hidden" id="scramble-panel">
+                <div class="panel-header"><span class="panel-title"><span class="material-symbols-outlined">shuffle</span> Scrambler</span><button class="secondary icon-btn" style="padding:4px;" onclick="toggleView('scramble-panel')"><span class="material-symbols-outlined">close</span></button></div>
+                <textarea id="scrambleIn" style="flex:1; resize:none; margin-bottom:10px;" placeholder="Type text to scramble..."></textarea>
+                <button onclick="runScramble()">Scramble Text</button>
+            </div>
+
+            <div class="panel hidden" id="settings-panel">
+                <div class="panel-header">
+                    <span class="panel-title"><span class="material-symbols-outlined">tune</span> Configuration</span>
+                    <button class="secondary icon-btn" style="padding:4px;" onclick="toggleView('settings-panel')"><span class="material-symbols-outlined">close</span></button>
+                </div>
+                <div class="settings-grid" style="display: grid; gap: 15px; overflow-y: auto;">
+                    <div style="display:flex; flex-direction:column; gap:5px;"><label style="font-size: 0.8rem; color: var(--text-dim);">Operator Designation</label><input type="text" id="nameInput" onchange="updateSettings()"></div>
+                    <div style="display:flex; flex-direction:column; gap:5px;"><label style="font-size: 0.8rem; color: var(--text-dim);">Background Image URL</label><input type="text" id="bgInput" placeholder="https://..." onchange="updateSettings()"></div>
+                    <div style="display:flex; gap: 15px;">
+                        <div style="display:flex; flex-direction:column; gap:5px; flex:1;"><label style="font-size: 0.8rem; color: var(--text-dim);">UI Font</label><select id="fontInput" onchange="updateSettings()"><option value="'Inter', sans-serif">Clean (Inter)</option><option value="'JetBrains Mono', monospace">Terminal (Mono)</option></select></div>
+                        <div style="display:flex; flex-direction:column; gap:5px; flex:1;"><label style="font-size: 0.8rem; color: var(--text-dim);">Theme Accent</label><input type="color" id="colorInput" onchange="updateSettings()" style="height:40px; padding:2px;"></div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <script>
+        /* --- CORE LOGIC & STATE --- */
+        let state = {
+            tasks: JSON.parse(localStorage.getItem('aurora_tasks')) || [],
+            links: JSON.parse(localStorage.getItem('aurora_links')) || [],
+            expenses: JSON.parse(localStorage.getItem('aurora_expenses')) || [],
+            notes: localStorage.getItem('aurora_notes') || '',
+            config: JSON.parse(localStorage.getItem('aurora_config')) || { name: 'OPERATOR', color: '#10b981', bgUrl: '', font: "'Inter', sans-serif", matrix: false },
+            activePanels: JSON.parse(localStorage.getItem('aurora_panels')) || ['terminal', 'sysmon-panel', 'tasks-panel', 'links-panel']
+        };
+
+        window.onload = () => {
+            applySettings(); renderTasks(); renderLinks(); renderExpenses();
+            document.getElementById('scratchpad').value = state.notes;
+            generatePalette();
+            restorePanels();
+            updateNavActiveStates();
+            startSysMon();
+            updateTimerDisplayFromInput();
+            if (state.config.matrix) initMatrix();
+            
+            setTimeout(() => {
+                addMessage("aurora", `Authentication accepted. Welcome back, ${state.config.name}. Systems online.`);
+                addMessage("aurora", "Type /help for configuration commands.");
+            }, 600);
+            
+            // Global key listener for Keycode tool
+            window.addEventListener('keydown', (e) => {
+                if(!document.getElementById('keycode-panel').classList.contains('hidden')) {
+                    document.getElementById('kcMain').innerText = e.keyCode;
+                    document.getElementById('kcSub').innerText = `Key: ${e.key} | Code: ${e.code}`;
+                }
+            });
+        };
+
+        /* --- STATEFUL VIEW TOGGLE --- */
+        function toggleView(id) { 
+            const el = document.getElementById(id);
+            if(!el) return;
+            
+            if (el.classList.contains('hidden')) {
+                el.classList.remove('hidden');
+                if (!state.activePanels.includes(id)) state.activePanels.push(id);
+            } else {
+                el.classList.add('hidden');
+                state.activePanels = state.activePanels.filter(p => p !== id);
+            }
+            saveState('aurora_panels', state.activePanels);
+            updateNavActiveStates();
+        }
+
+        function restorePanels() {
+            const allPanels = document.querySelectorAll('.panel');
+            allPanels.forEach(panel => {
+                if (state.activePanels.includes(panel.id)) panel.classList.remove('hidden');
+                else panel.classList.add('hidden');
+            });
+        }
+
+        function updateNavActiveStates() {
+            document.querySelectorAll('.nav-icon').forEach(icon => {
+                const targetId = icon.getAttribute('onclick').match(/'([^']+)'/)[1];
+                if(state.activePanels.includes(targetId)) icon.classList.add('active-icon');
+                else icon.classList.remove('active-icon');
+            });
+        }
+
+        function saveState(key, data) { localStorage.setItem(key, typeof data === 'string' ? data : JSON.stringify(data)); }
+
+/* --- ADVANCED TERMINAL (CONFIG & COMMANDS) --- */
+        function handleChat() {
+            const input = document.getElementById('chatInput');
+            const val = input.value.trim();
+            if(!val) return;
+            addMessage("user", val); input.value = '';
+            
+            const args = val.split(' ');
+            let cmd = args[0].toLowerCase();
+            
+            // Allow commands with or without the leading slash
+            if (!cmd.startsWith('/')) {
+                cmd = '/' + cmd;
+            }
+
+            setTimeout(() => {
+                switch(cmd) {
+                    case '/help':
+                        addMessage("aurora", "COMMANDS:\n/clear - Wipe terminal\n/time - Show local time\n/ping - Check system latency\n/whoami - Identify operator\n/set name [text] - Change Operator name\n/set color [hex] - Change accent color\n/set font [mono/clean] - Change UI font\n/set matrix [on/off] - Toggle matrix bg\n/echo [text] - Repeat phrase\n/export - Download config as txt\n/import - Upload config txt file\n/workmode - Open dedicated graphic site\n/fullscreen - Toggle fullscreen mode");
+                        break;
+                    case '/time':
+                        addMessage("aurora", "Current System Time: " + new Date().toLocaleTimeString());
+                        break;
+                    case '/ping':
+                        addMessage("aurora", `Pong! Latency: ${Math.floor(Math.random() * 45) + 5}ms`);
+                        break;
+                    case '/whoami':
+                        addMessage("aurora", `Current operator designation is: ${state.config.name}`);
+                        break;
+                    case '/clear':
+                        document.getElementById('chatBox').innerHTML = '';
+                        addMessage("aurora", "Terminal cleared.");
+                        setTimeout(() => {
+                            const box = document.getElementById('chatBox');
+                            if (box.lastChild && box.lastChild.innerText.includes("Terminal cleared.")) {
+                                box.lastChild.style.transition = "opacity 0.5s ease-out, transform 0.5s ease-out";
+                                box.lastChild.style.opacity = "0";
+                                box.lastChild.style.transform = "translateX(-20px)";
+                                setTimeout(() => { if (box.lastChild) box.removeChild(box.lastChild); }, 500);
+                            }
+                        }, 2000);
+                        break;
+                    case '/fullscreen':
+                        if (!document.fullscreenElement) {
+                            document.documentElement.requestFullscreen().then(() => {
+                                addMessage("aurora", "Fullscreen engaged.");
+                            }).catch(err => {
+                                addMessage("aurora", `Error attempting to enable fullscreen: ${err.message}`);
+                            });
+                        } else {
+                            if (document.exitFullscreen) {
+                                document.exitFullscreen().then(() => {
+                                    addMessage("aurora", "Fullscreen disabled.");
+                                });
+                            }
+                        }
+                        break;
+                    case '/set':
+                        // Fallback logic incase user didn't use slash originally but we added it
+                        let setArg = args[1] || '';
+                        if (args[0] && !args[0].startsWith('/')) setArg = args[1];
+
+                        if (setArg === 'name' && args.slice(2).length > 0) {
+                            state.config.name = args.slice(2).join(' ');
+                            updateSettingsFromState();
+                            addMessage("aurora", `Operator designation updated to ${state.config.name}.`);
+                        } else if (setArg === 'color' && args[2]) {
+                            state.config.color = args[2];
+                            updateSettingsFromState();
+                            addMessage("aurora", `Accent color updated to ${args[2]}.`);
+                        } else if (setArg === 'font' && args[2]) {
+                            state.config.font = args[2] === 'mono' ? "'JetBrains Mono', monospace" : "'Inter', sans-serif";
+                            updateSettingsFromState();
+                            addMessage("aurora", `Typography updated.`);
+                        } else if (setArg === 'matrix') {
+                            state.config.matrix = (args[2] === 'on');
+                            updateSettingsFromState();
+                            if (state.config.matrix) initMatrix(); else document.getElementById('matrixCanvas').classList.remove('active');
+                            addMessage("aurora", `Matrix protocol ${state.config.matrix ? 'engaged' : 'disabled'}.`);
+                        } else {
+                            addMessage("aurora", "Error: Invalid /set syntax. See /help.");
+                        }
+                        break;
+                    case '/echo':
+                        addMessage("aurora", args.slice(1).join(' '));
+                        break;
+                    case '/export': {
+                        // Create a blob from the JSON and trigger a download
+                        const dataStr = JSON.stringify(state.config, null, 2);
+                        const blob = new Blob([dataStr], { type: "text/plain" });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = 'aurora_config.txt';
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        URL.revokeObjectURL(url);
+                        addMessage("aurora", "Configuration exported as aurora_config.txt.");
+                        break;
+                    }
+                    case '/import': {
+                        // Create a hidden file input and trigger it
+                        const fileInput = document.createElement('input');
+                        fileInput.type = 'file';
+                        fileInput.accept = '.txt';
+                        fileInput.onchange = (e) => {
+                            const file = e.target.files[0];
+                            if (!file) return;
+                            
+                            const reader = new FileReader();
+                            reader.onload = (event) => {
+                                try {
+                                    const parsedConfig = JSON.parse(event.target.result);
+                                    if (typeof parsedConfig === 'object' && parsedConfig !== null) {
+                                        state.config = { ...state.config, ...parsedConfig };
+                                        updateSettingsFromState();
+                                        if (state.config.matrix) initMatrix(); else document.getElementById('matrixCanvas').classList.remove('active');
+                                        addMessage("aurora", `Configuration successfully imported from ${file.name}.`);
+                                    } else {
+                                        addMessage("aurora", "Error: Valid JSON object required in file.");
+                                    }
+                                } catch(err) {
+                                    addMessage("aurora", "Error: Invalid JSON format in file.");
+                                }
+                            };
+                            reader.readAsText(file);
+                        };
+                        
+                        fileInput.click();
+                        addMessage("aurora", "Awaiting file selection...");
+                        break;
+                    }
+
+                    case '/workmode':
+                        addMessage("aurora", "Initializing workmode graph environment...");
+                        window.open('graph.html', '_blank');
+                        break;
+                    default:
+                        // Strip slash if we added it for error message clarity
+                        const errCmd = cmd.startsWith('/') ? cmd.substring(1) : cmd;
+                        addMessage("aurora", `Command '${errCmd}' not recognized. Type help.`);
+                }
+            }, 300);
+        }
+
+        // Typing effect for Aurora messages
+        function addMessage(sender, text) {
+            const box = document.getElementById('chatBox');
+            const div = document.createElement('div'); 
+            div.className = `msg msg-${sender}`;
+            box.appendChild(div);
+            
+            if (sender === 'aurora') {
+                let i = 0;
+                div.innerText = "";
+                function typeWriter() {
+                    if (i < text.length) {
+                        div.innerHTML += text.charAt(i);
+                        i++;
+                        box.scrollTop = box.scrollHeight;
+                        setTimeout(typeWriter, 10);
+                    }
+                }
+                typeWriter();
+            } else {
+                div.innerText = `> ${text}`;
+                box.scrollTop = box.scrollHeight;
+            }
+        }
+
+        /* --- SYSTEM TELEMETRY (MOCK) --- */
+        function startSysMon() {
+            setInterval(() => {
+                if(document.getElementById('sysmon-panel').classList.contains('hidden')) return;
+                
+                const cpu = Math.floor(Math.random() * 30) + 15; // 15-45%
+                document.getElementById('cpuVal').innerText = `${cpu}%`;
+                document.getElementById('cpuBar').style.width = `${cpu}%`;
+
+                const ramBase = 6.2;
+                const ramFluct = (Math.random() * 0.4).toFixed(1);
+                const ramTotal = (parseFloat(ramBase) + parseFloat(ramFluct)).toFixed(1);
+                const ramPercent = (ramTotal / 16) * 100;
+                document.getElementById('ramVal').innerText = `${ramTotal}GB / 16GB`;
+                document.getElementById('ramBar').style.width = `${ramPercent}%`;
+
+                const net = Math.floor(Math.random() * 150) + 10;
+                document.getElementById('netVal').innerText = `${net} Mbps`;
+                document.getElementById('netBar').style.width = `${Math.min(net / 2, 100)}%`;
+            }, 2000);
+        }
+
+        /* --- MATRIX RAIN --- */
+        let matrixInterval;
+        function initMatrix() {
+            const canvas = document.getElementById('matrixCanvas');
+            canvas.classList.add('active');
+            const ctx = canvas.getContext('2d');
+            canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+            const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%^&*'.split('');
+            const fontSize = 14; const columns = canvas.width / fontSize;
+            const drops = []; for(let x = 0; x < columns; x++) drops[x] = 1;
+            
+            if (matrixInterval) clearInterval(matrixInterval);
+            matrixInterval = setInterval(() => {
+                ctx.fillStyle = 'rgba(2, 6, 23, 0.1)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = state.config.color;
+                ctx.font = fontSize + 'px monospace';
+                for(let i = 0; i < drops.length; i++) {
+                    const text = letters[Math.floor(Math.random() * letters.length)];
+                    ctx.fillText(text, i * fontSize, drops[i] * fontSize);
+                    if(drops[i] * fontSize > canvas.height && Math.random() > 0.975) drops[i] = 0;
+                    drops[i]++;
+                }
+            }, 33);
+        }
+
+        window.addEventListener('resize', () => {
+            if (state.config.matrix) {
+                const canvas = document.getElementById('matrixCanvas');
+                canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+            }
+        });
+
+        /* --- TASKS --- */
+        function addTask() {
+            const inp = document.getElementById('taskInput');
+            if(inp.value.trim()) { state.tasks.push({text: inp.value.trim(), done: false}); inp.value = ''; saveState('aurora_tasks', state.tasks); renderTasks(); }
+        }
+        function renderTasks() {
+            document.getElementById('taskList').innerHTML = state.tasks.map((t, i) => `
+                <div class="list-item"><span class="task-text ${t.done ? 'task-done' : ''}" style="cursor:pointer; flex:1;" onclick="toggleTask(${i})">${t.done ? '✓ ' : '○ '} ${t.text}</span>
+                <button class="secondary icon-btn" onclick="deleteTask(${i})" style="padding:2px; border:none; color:#ef4444;"><span class="material-symbols-outlined" style="font-size:18px;">delete</span></button></div>
+            `).join('');
+        }
+        function toggleTask(i) { state.tasks[i].done = !state.tasks[i].done; saveState('aurora_tasks', state.tasks); renderTasks(); }
+        function deleteTask(i) { state.tasks.splice(i, 1); saveState('aurora_tasks', state.tasks); renderTasks(); }
+
+        /* --- LINKS --- */
+        function addLink() {
+            const name = document.getElementById('linkName').value.trim();
+            let url = document.getElementById('linkUrl').value.trim();
+            if(name && url) {
+                if(!url.startsWith('http')) url = 'https://' + url;
+                state.links.push({name, url}); document.getElementById('linkName').value = ''; document.getElementById('linkUrl').value = '';
+                saveState('aurora_links', state.links); renderLinks();
+            }
+        }
+        function renderLinks() {
+            document.getElementById('linkList').innerHTML = state.links.map((l, i) => `
+                <a href="${l.url}" target="_blank" class="list-item" style="text-decoration:none; color:var(--text-main); font-size:0.9rem; margin:0;" title="${l.url}">
+                <span class="material-symbols-outlined" style="font-size:16px; margin-right:5px;">link</span><span style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${l.name}</span>
+                <span class="material-symbols-outlined" style="font-size:14px; opacity:0.5;" onclick="event.preventDefault(); deleteLink(${i})">close</span></a>
+            `).join('');
+        }
+        function deleteLink(i) { state.links.splice(i, 1); saveState('aurora_links', state.links); renderLinks(); }
+
+        /* --- SCRATCHPAD --- */
+        function saveNotes() { saveState('aurora_notes', document.getElementById('scratchpad').value); }
+
+        /* --- FOCUS TIMER --- */
+        let timeLeft = 1500, timerId = null;
+        function updateTimerDisplayFromInput() {
+            if(!timerId) {
+                let mins = parseInt(document.getElementById('focusTimeInput').value) || 25;
+                timeLeft = mins * 60;
+                updateTimerDisplay();
+            }
+        }
+        function startTimer() { 
+            if(!timerId) {
+                let mins = parseInt(document.getElementById('focusTimeInput').value) || 25;
+                if(timeLeft === 0) timeLeft = mins * 60;
+                timerId = setInterval(() => { 
+                    timeLeft--; 
+                    updateTimerDisplay(); 
+                    if(timeLeft <= 0) { 
+                        clearInterval(timerId); timerId = null; alert("Focus Complete."); 
+                    } 
+                }, 1000); 
+            }
+        }
+        function resetTimer() { 
+            clearInterval(timerId); 
+            timerId = null; 
+            let mins = parseInt(document.getElementById('focusTimeInput').value) || 25;
+            timeLeft = mins * 60; 
+            updateTimerDisplay(); 
+        }
+        function updateTimerDisplay() { 
+            const m = Math.floor(timeLeft / 60), s = timeLeft % 60; 
+            document.getElementById('timerDisplay').innerText = `${m}:${s < 10 ? '0' : ''}${s}`; 
+        }
+
+        /* --- CALCULATOR --- */
+        let calcVal = "0";
+        function calcAppend(v) { if(calcVal === "0" && v !== "/" && v !== "*") calcVal = v; else calcVal += v; document.getElementById('calcDisplay').value = calcVal; }
+        function calcClear() { calcVal = "0"; document.getElementById('calcDisplay').value = calcVal; }
+        function calcEval() { try { calcVal = new Function('return ' + calcVal)().toString(); document.getElementById('calcDisplay').value = calcVal; } catch(e) { document.getElementById('calcDisplay').value = "ERR"; calcVal="0"; } }
+
+        /* --- PASSWORD GEN --- */
+        function generatePassword() {
+            const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_+";
+            let pass = ""; const len = document.getElementById('passLen').value;
+            for(let i=0; i<len; i++) pass += chars.charAt(Math.floor(Math.random() * chars.length));
+            document.getElementById('passOutput').value = pass;
+        }
+
+        /* --- TEXT ANALYZER --- */
+        function analyzeText() {
+            const txt = document.getElementById('textAnalyzer').value;
+            document.getElementById('charCount').innerText = txt.length;
+            document.getElementById('wordCount').innerText = txt.trim() === '' ? 0 : txt.trim().split(/\s+/).length;
+        }
+
+        /* --- EXPENSE TRACKER --- */
+        function addExpense() {
+            const desc = document.getElementById('expDesc').value.trim(); const amt = parseFloat(document.getElementById('expAmt').value);
+            if(desc && !isNaN(amt)) { state.expenses.push({desc, amt}); document.getElementById('expDesc').value=''; document.getElementById('expAmt').value=''; saveState('aurora_expenses', state.expenses); renderExpenses(); }
+        }
+        function renderExpenses() {
+            let total = 0;
+            document.getElementById('expenseList').innerHTML = state.expenses.map((e, i) => {
+                total += e.amt;
+                return `<div class="list-item"><span style="flex:1;">${e.desc}</span><span style="color:var(--accent); font-family:'JetBrains Mono', monospace; margin-right:10px;">$${e.amt.toFixed(2)}</span>
+                <span class="material-symbols-outlined" style="font-size:16px; cursor:pointer; color:#ef4444;" onclick="deleteExpense(${i})">delete</span></div>`;
+            }).join('');
+            document.getElementById('expenseTotal').innerText = `$${total.toFixed(2)}`;
+        }
+        function deleteExpense(i) { state.expenses.splice(i, 1); saveState('aurora_expenses', state.expenses); renderExpenses(); }
+
+        /* --- STOPWATCH --- */
+        let swTime = 0, swInterval = null;
+        function startSW() { if(!swInterval) swInterval = setInterval(() => { swTime+=100; updateSW(); }, 100); }
+        function stopSW() { clearInterval(swInterval); swInterval = null; }
+        function resetSW() { stopSW(); swTime = 0; updateSW(); }
+        function updateSW() {
+            const m = Math.floor(swTime / 60000); const s = Math.floor((swTime % 60000) / 1000); const ms = Math.floor((swTime % 1000) / 100);
+            document.getElementById('swDisplay').innerText = `${m < 10 ? '0' : ''}${m}:${s < 10 ? '0' : ''}${s}.${ms}`;
+        }
+
+        /* --- COLOR PALETTE --- */
+        function generatePalette() {
+            const count = document.getElementById('paletteCount').value;
+            document.getElementById('paletteCountDisp').innerText = count;
+            const container = document.getElementById('colorContainer');
+            container.innerHTML = '';
+            for(let i=0; i<count; i++) {
+                const color = '#' + Math.floor(Math.random()*16777215).toString(16).padStart(6, '0');
+                const div = document.createElement('div');
+                div.className = 'color-box';
+                div.style.backgroundColor = color;
+                div.style.color = getContrast(color);
+                div.innerText = color;
+                div.onclick = () => { navigator.clipboard.writeText(color); div.innerText = 'COPIED!'; setTimeout(()=>div.innerText=color, 800); };
+                container.appendChild(div);
+            }
+        }
+
+        function getContrast(hexcolor) { const r = parseInt(hexcolor.substr(1,2),16), g = parseInt(hexcolor.substr(3,2),16), b = parseInt(hexcolor.substr(5,2),16); return ((r*299)+(g*587)+(b*114))/1000 >= 128 ? 'black' : 'white'; }
+
+        /* --- UTILS --- */
+        function runConvert() {
+            const val = parseFloat(document.getElementById('convInput').value);
+            if(isNaN(val)) { document.getElementById('convOutput').value = ''; return; }
+            const type = document.getElementById('convType').value;
+            let res = 0;
+            if(type === 'km_mi') res = val * 0.621371; else if(type === 'kg_lb') res = val * 2.20462; else if(type === 'c_f') res = (val * 9/5) + 32;
+            document.getElementById('convOutput').value = res.toFixed(2);
+        }
+
+        function rollRNG() {
+            const min = parseInt(document.getElementById('rngMin').value) || 1;
+            const max = parseInt(document.getElementById('rngMax').value) || 100;
+            if (min > max) { document.getElementById('rngResult').innerText = "ERR"; return; }
+            document.getElementById('rngResult').innerText = Math.floor(Math.random() * (max - min + 1)) + min;
+        }
+
+        function genQR() {
+            const val = document.getElementById('qrInput').value.trim();
+            if(val) document.getElementById('qrBox').innerHTML = `<img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(val)}" alt="QR">`;
+        }
+
+        function runB64(mode) {
+            const el = document.getElementById('b64Input');
+            try { el.value = mode === 'enc' ? btoa(el.value) : atob(el.value); } 
+            catch(e) { el.value = "Error: Invalid Base64"; }
+        }
+
+        function runBin(mode) {
+            const el = document.getElementById('binInput');
+            if(mode === 'enc') el.value = el.value.split('').map(char => char.charCodeAt(0).toString(2).padStart(8, '0')).join(' ');
+            else {
+                try { el.value = el.value.split(' ').map(bin => String.fromCharCode(parseInt(bin, 2))).join(''); }
+                catch(e) { el.value = "Error: Invalid Binary"; }
+            }
+        }
+
+        /* --- MORSE CODE --- */
+        const morseDict = { 'A':'.-','B':'-...','C':'-.-.','D':'-..','E':'.','F':'..-.','G':'--.','H':'....','I':'..','J':'.---','K':'-.-','L':'.-..','M':'--','N':'-.','O':'---','P':'.--.','Q':'--.-','R':'.-.','S':'...','T':'-','U':'..-','V':'...-','W':'.--','X':'-..-','Y':'-.--','Z':'--..','1':'.----','2':'..---','3':'...--','4':'....-','5':'.....','6':'-....','7':'--...','8':'---..','9':'----.','0':'-----',' ': '/' };
+        const revMorseDict = Object.fromEntries(Object.entries(morseDict).map(([k, v]) => [v, k]));
+        
+        function runMorse(mode) {
+            const el = document.getElementById('morseInput');
+            const val = el.value.toUpperCase();
+            if(mode === 'enc') {
+                el.value = val.split('').map(c => morseDict[c] || c).join(' ');
+            } else {
+                el.value = val.split(' ').map(c => revMorseDict[c] || c).join('').replace(/\//g, ' ');
+            }
+        }
+
+        /* --- DEVICE SCANNER --- */
+        function scanDevice() {
+            const out = document.getElementById('deviceOutput');
+            out.innerHTML = `
+                <div>> OS: ${navigator.platform}</div>
+                <div>> LANG: ${navigator.language}</div>
+                <div>> CORES: ${navigator.hardwareConcurrency || 'Unknown'}</div>
+                <div>> RAM: ~${navigator.deviceMemory || 'Unknown'} GB</div>
+                <div>> SCREEN: ${window.screen.width}x${window.screen.height}</div>
+                <div>> AGENT: ${navigator.userAgent.split(' ')[0]}</div>
+                <button onclick="scanDevice()" style="margin-top:10px; width:100%;">Re-Scan</button>
+            `;
+        }
+
+        function genLorem() {
+            const lorem = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.";
+            const count = parseInt(document.getElementById('loremCount').value) || 1;
+            let out = []; for(let i=0; i<count; i++) out.push(lorem);
+            document.getElementById('loremOut').value = out.join('\n\n');
+        }
+
+        function hexToRgb() {
+            let hex = document.getElementById('hexIn').value.replace('#', '');
+            if(hex.length === 3) hex = hex.split('').map(x => x+x).join('');
+            if(hex.length === 6) {
+                const r = parseInt(hex.substring(0,2), 16), g = parseInt(hex.substring(2,4), 16), b = parseInt(hex.substring(4,6), 16);
+                document.getElementById('hexOut').value = `rgb(${r}, ${g}, ${b})`;
+            } else { document.getElementById('hexOut').value = ''; }
+        }
+        function rgbToHex() {
+            const vals = document.getElementById('rgbIn').value.split(',').map(x => parseInt(x.trim()));
+            if(vals.length === 3 && vals.every(v => !isNaN(v) && v >= 0 && v <= 255)) {
+                document.getElementById('rgbOut').value = '#' + vals.map(x => x.toString(16).padStart(2, '0')).join('').toUpperCase();
+            } else { document.getElementById('rgbOut').value = ''; }
+        }
+
+        function runScramble() {
+            const el = document.getElementById('scrambleIn');
+            el.value = el.value.split(/\s+/).map(word => {
+                if(word.length <= 3) return word;
+                const middle = word.slice(1, -1).split('').sort(() => 0.5 - Math.random()).join('');
+                return word[0] + middle + word[word.length-1];
+            }).join(' ');
+        }
+
+        /* --- SETTINGS & CONFIG --- */
+        function updateSettings() {
+            state.config.name = document.getElementById('nameInput').value || state.config.name;
+            state.config.color = document.getElementById('colorInput').value;
+            state.config.bgUrl = document.getElementById('bgInput').value;
+            state.config.font = document.getElementById('fontInput').value;
+            saveState('aurora_config', state.config); applySettings();
+        }
+        
+        function updateSettingsFromState() {
+            saveState('aurora_config', state.config); applySettings();
+        }
+
+        function applySettings() {
+            const root = document.documentElement;
+            const rgb = hexToRgbVals(state.config.color);
+            
+            root.style.setProperty('--accent', state.config.color); 
+            root.style.setProperty('--accent-glow', `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.2)`);
+            root.style.setProperty('--font-family', state.config.font);
+            root.style.setProperty('--bg-image', state.config.bgUrl ? `url('${state.config.bgUrl}')` : 'none');
+            
+            document.getElementById('opName').innerText = state.config.name.toUpperCase();
+            document.getElementById('nameInput').value = state.config.name; 
+            document.getElementById('colorInput').value = state.config.color;
+            document.getElementById('bgInput').value = state.config.bgUrl || ''; 
+            document.getElementById('fontInput').value = state.config.font;
+        }
+
+        function hexToRgbVals(hex) {
+            let h = hex.replace('#', '');
+            if(h.length === 3) h = h.split('').map(x => x+x).join('');
+            return { r: parseInt(h.substring(0,2), 16), g: parseInt(h.substring(2,4), 16), b: parseInt(h.substring(4,6), 16) };
+        }
+
+        function clearAllData() { if(confirm("CRITICAL WARNING: Purge all local workspace data?")) { localStorage.clear(); location.reload(); } }
+
+        /* --- EASTER EGG --- */
+        let buffer = "";
+        document.addEventListener("keydown", (e) => {
+          if (e.key.length === 1) {
+            buffer += e.key.toLowerCase();
+            if (buffer.length > 20) buffer = buffer.slice(-20);
+            if (buffer.includes("chiropractor")) window.location.href = "game.html";
+          }
+        });
+    </script>
+</body>
+</html>
